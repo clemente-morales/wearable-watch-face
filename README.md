@@ -1,4 +1,4 @@
-wearable-watch-face
+Wearable-watch-face
 --------------
 
 Clone repository from [Advanced Android Sample App](https://github.com/udacity/Advanced_Android_Development). 
