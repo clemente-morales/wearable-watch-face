@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="builditbigger.gradle.udacity.com.myapplication" >
+    package="com.example.android.sunshine.wear" >
 
     <uses-feature android:name="android.hardware.type.watch" />
 
@@ -26,6 +26,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".SunshineWatchFaceService"
+            android:label="@string/wear_watch_face__title"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/watch_face" />
+            <!--<meta-data
+                android:name="com.google.android.wearable.watchface.preview"
+                android:resource="@drawable/preview_analog" />
+            <meta-data
+                android:name="com.google.android.wearable.watchface.preview_circular"
+                android:resource="@drawable/preview_analog_circular" />-->
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+                <category
+                    android:name=
+                        "com.google.android.wearable.watchface.category.WATCH_FACE" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

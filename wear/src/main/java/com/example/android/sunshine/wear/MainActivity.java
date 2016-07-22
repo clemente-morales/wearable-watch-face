@@ -1,4 +1,4 @@
-package builditbigger.gradle.udacity.com.myapplication;
+package com.example.android.sunshine.wear;
 
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;
@@ -14,6 +14,8 @@ public class MainActivity extends WearableActivity {
 
     private static final SimpleDateFormat AMBIENT_DATE_FORMAT =
             new SimpleDateFormat("HH:mm", Locale.US);
+
+    // implement DataApi.DataListener to receive data change notification from app :)
 
     private BoxInsetLayout mContainerView;
     private TextView mTextView;
