@@ -8,7 +8,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -20,6 +19,7 @@ import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
@@ -42,8 +42,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-
-import static android.R.attr.centerX;
 
 /**
  * Created by clerks on 7/21/16.
@@ -104,9 +102,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         private boolean isRound;
 
-        private int chinSize;
+        private String highestTemperature = "25";
 
-        private int highestTemperature;
+        private String lowestTemperature = "16";
 
         Date date;
         SimpleDateFormat dayOfWeekFormat;
@@ -163,7 +161,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         private Paint colonPaint;
         float colonWidth;
         boolean mute;
-        private int lowestTemperature;
         private Paint highestTemperaturePaint;
         private Paint lowestTemperaturePaint;
 
@@ -195,8 +192,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             minutePaint = createTextPaint(mInteractiveMinuteDigitsColor);
             colonPaint = createTextPaint(resources.getColor(R.color.digital_colons));
 
-            highestTemperaturePaint = createTextPaint(Color.WHITE, BOLD_TYPEFACE);
-            lowestTemperaturePaint = createTextPaint(Color.WHITE, BOLD_TYPEFACE);
+            highestTemperaturePaint = createTextPaint(mInteractiveHourDigitsColor);
+            lowestTemperaturePaint = createTextPaint(resources.getColor(R.color.digital_date));
+
+            weatherBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
 
             calendar = Calendar.getInstance();
             date = new Date();
@@ -301,36 +300,50 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             float fullTimeTextWidth = hourPaint.measureText(fullTimeText);
             float hourPosition = (bounds.width() - fullTimeTextWidth) / 2;
 
-            canvas.drawText(hourString, hourPosition, yOffset, hourPaint);
+            float yPosition = yOffset;
+
+            canvas.drawText(hourString, hourPosition, yPosition, hourPaint);
             x = hourPosition + hourPaint.measureText(hourString);
 
             // In ambient and mute modes, always draw the first colon. Otherwise, draw the
             // first colon for the first half of each second.
             if (isInAmbientMode() || mute || shouldDrawColons) {
-                canvas.drawText(COLON_STRING, x, yOffset, colonPaint);
+                canvas.drawText(COLON_STRING, x, yPosition, colonPaint);
             }
             x += colonWidth;
-            canvas.drawText(minuteString, x, yOffset, minutePaint);
+            canvas.drawText(minuteString, x, yPosition, minutePaint);
 
             String dateText = dayOfWeekFormat.format(date);
             float dateTextWidth = datePaint.measureText(dateText);
-            float datePosition = (bounds.width() - dateTextWidth) / 2;
-            canvas.drawText(dateText, datePosition, yOffset + mLineHeight, datePaint);
+            float dateXPosition = (bounds.width() - dateTextWidth) / 2;
+            yPosition += mLineHeight;
+            canvas.drawText(dateText, dateXPosition, yPosition, datePaint);
 
             if (getPeekCardPosition().isEmpty()) {
-                // Day of week
-                // Date
-                if (weatherBitmap != null && !lowBitAmbient)
-                    canvas.drawBitmap(weatherBitmap, centerX - weatherBitmap.getWidth() - weatherBitmap.getWidth() / 4,
-                            yOffset - weatherBitmap.getHeight() / 2, weatherPaint);
 
+                String formattedHighestTemperature = String.format(getResources().getString(R.string.format_temperature), highestTemperature);
+                String formattedLowestTemperature = String.format(getResources().getString(R.string.format_temperature), lowestTemperature);
 
-                String highestTemperatureText = Integer.toString(highestTemperature);
-                canvas.drawText(highestTemperatureText, centerX, yOffset, highestTemperaturePaint);
+                float temperaturesWidth = highestTemperaturePaint.measureText(formattedHighestTemperature.concat(formattedLowestTemperature));
+                float xPosition = 0.0f;
 
-                String lowestTemperatureText = Integer.toString(lowestTemperature);
-                float highTempSize = highestTemperaturePaint.measureText(highestTemperatureText);
-                canvas.drawText(lowestTemperatureText, centerX + highTempSize, yOffset, lowestTemperaturePaint);
+                if (weatherBitmap != null && !isInAmbientMode()) {
+                    xPosition = (bounds.width() - (temperaturesWidth + weatherBitmap.getWidth())) / 2;
+                    canvas.drawBitmap(weatherBitmap, xPosition, yPosition, weatherPaint);
+                    xPosition += weatherBitmap.getWidth();
+                    yPosition = yPosition + (weatherBitmap.getHeight() - mLineHeight);
+                } else {
+                    xPosition = (bounds.width() - temperaturesWidth) / 2;
+                    yPosition += mLineHeight;
+                }
+
+                canvas.drawText(formattedHighestTemperature, xPosition, yPosition,
+                        highestTemperaturePaint);
+
+                xPosition +=
+                        highestTemperaturePaint.measureText(formattedHighestTemperature);
+                canvas.drawText(formattedLowestTemperature, xPosition, yPosition,
+                        lowestTemperaturePaint);
             }
 
         }
@@ -359,7 +372,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         public void onApplyWindowInsets(WindowInsets insets) {
             super.onApplyWindowInsets(insets);
             isRound = insets.isRound();
-            chinSize = insets.getSystemWindowInsetBottom();
 
             Resources resources = SunshineWatchFaceService.this.getResources();
             xOffset = resources.getDimension(isRound
@@ -367,10 +379,14 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
+            float temperatureTextSize = resources.getDimension(R.dimen.digital_temperature_text_size);
+
             datePaint.setTextSize(resources.getDimension(R.dimen.digital_date_text_size));
             hourPaint.setTextSize(textSize);
             minutePaint.setTextSize(textSize);
             colonPaint.setTextSize(textSize);
+            highestTemperaturePaint.setTextSize(temperatureTextSize);
+            lowestTemperaturePaint.setTextSize(temperatureTextSize);
 
             colonWidth = colonPaint.measureText(COLON_STRING);
         }
@@ -401,11 +417,14 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 }
 
                 DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
-                final int latestHighestTemperature = dataMap.getInt(HIGHEST_TEMPERATURE_KEY);
-                final int latestLowestTemperature = dataMap.getInt(LOWEST_TEMPERATURE_KEY);
+                final String latestHighestTemperature = dataMap.getString(HIGHEST_TEMPERATURE_KEY);
+                final String latestLowestTemperature = dataMap.getString(LOWEST_TEMPERATURE_KEY);
 
-                if (latestHighestTemperature != highestTemperature
-                        || latestLowestTemperature != lowestTemperature) {
+                if (TextUtils.isEmpty(latestHighestTemperature) || TextUtils.isEmpty(latestLowestTemperature))
+                    return;
+
+                if (!latestHighestTemperature.equalsIgnoreCase(highestTemperature)
+                        || !latestLowestTemperature.equalsIgnoreCase(lowestTemperature)) {
 
                     final Asset iconAsset = dataMap.getAsset(WEATHER_ICON_KEY);
 
@@ -420,7 +439,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void updateData(int latestHighestTemperature, int latestLowestTemperature, Asset iconAsset) {
+        private void updateData(String latestHighestTemperature, String latestLowestTemperature, Asset iconAsset) {
             Bitmap weatherIcon = assetToBitmap(iconAsset);
             int weatherIconSize = Float.valueOf(getResources().getDimension(R.dimen.weather_icon_size)).intValue();
             weatherBitmap = Bitmap.createScaledBitmap(weatherIcon, weatherIconSize, weatherIconSize, false);
