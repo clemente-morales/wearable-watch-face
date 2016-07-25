@@ -3,8 +3,17 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion "$rootProject.ext.buildToolsVersion"
+
+    signingConfigs {
+        releaseConfig {
+            storeFile file('/Users/clerks/Desktop/Clerks/Android/KeyStore/android_key_store.jks')
+            storePassword "hanayome"
+            keyAlias "release_key"
+            keyPassword "kokoro"
+        }
+    }
+
     defaultConfig {
-        applicationId "com.example.android.sunshine.wear"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -13,6 +22,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.releaseConfig
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

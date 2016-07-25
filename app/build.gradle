@@ -5,6 +5,15 @@ android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion "$rootProject.ext.buildToolsVersion"
 
+    signingConfigs {
+        releaseConfig {
+            storeFile ""
+            storePassword ""
+            keyAlias ""
+            keyPassword ""
+        }
+    }
+
     defaultConfig {
         applicationId "com.example.android.sunshine.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -16,6 +25,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.releaseConfig
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

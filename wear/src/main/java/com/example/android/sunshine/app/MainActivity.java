@@ -1,4 +1,4 @@
-package com.example.android.sunshine.wear;
+package com.example.android.sunshine.app;
 
 import android.os.Bundle;
 import android.support.wearable.activity.WearableActivity;

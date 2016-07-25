@@ -69,6 +69,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
     public static final String HIGHEST_TEMPERATURE_KEY = "highestTemperature";
     public static final String LOWEST_TEMPERATURE_KEY = "lowestTemperature";
     public static final String WEATHER_ICON_KEY = "weatherIcon";
+    public static final String TIME_KEY = "Time";
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
     public static final String ACTION_DATA_UPDATED =
             "com.example.android.sunshine.app.ACTION_DATA_UPDATED";
@@ -432,8 +433,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         mapRequest.getDataMap().putString(HIGHEST_TEMPERATURE_KEY, highTemp);
         mapRequest.getDataMap().putString(LOWEST_TEMPERATURE_KEY, lowTemp);
         mapRequest.getDataMap().putAsset(WEATHER_ICON_KEY, bitmapToAsset(weatherIcon));
+        mapRequest.getDataMap().putLong(TIME_KEY, System.currentTimeMillis());
+
+        Log.d(LOG_TAG, String.format("Sending temperature values %s %s", highTemp, lowTemp));
 
         PutDataRequest request = mapRequest.asPutDataRequest();
+
         Wearable.DataApi.putDataItem(googleApiClient, request).setResultCallback(new ResultCallbacks<DataApi.DataItemResult>() {
             @Override
             public void onSuccess(DataApi.DataItemResult dataItemResult) {

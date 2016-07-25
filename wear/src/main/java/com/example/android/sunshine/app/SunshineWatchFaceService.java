@@ -1,4 +1,4 @@
-package com.example.android.sunshine.wear;
+package com.example.android.sunshine.app;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -21,6 +21,7 @@ import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
@@ -85,6 +86,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
          */
         static final int NORMAL_ALPHA = 255;
 
+        private final String TAG = Engine.class.getSimpleName();
+
 
         long mInteractiveUpdateRateMs = NORMAL_UPDATE_RATE_MS;
 
@@ -102,9 +105,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         private boolean isRound;
 
-        private String highestTemperature = "25";
+        private String highestTemperature = String.format(getResources().getString(R.string.format_temperature), "25");
 
-        private String lowestTemperature = "16";
+        private String lowestTemperature = String.format(getResources().getString(R.string.format_temperature), "16");
 
         Date date;
         SimpleDateFormat dayOfWeekFormat;
@@ -135,12 +138,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             }
         };
 
-        private GoogleApiClient mGoogleApiClient =
-                new GoogleApiClient.Builder(SunshineWatchFaceService.this)
-                        .addApi(Wearable.API)
-                        .addConnectionCallbacks(this)
-                        .addOnConnectionFailedListener(this)
-                        .build();
+        private GoogleApiClient mGoogleApiClient;
 
         final BroadcastReceiver timeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -164,6 +162,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         private Paint highestTemperaturePaint;
         private Paint lowestTemperaturePaint;
 
+        private float top_margin_image = 0;
+
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -185,6 +185,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             backgroundPaint = new Paint();
             weatherPaint = new Paint();
 
+            top_margin_image = resources.getDimension(R.dimen.top_margin_image);
+
             backgroundPaint.setColor(resources.getColor(mInteractiveBackgroundColor));
             datePaint = createTextPaint(resources.getColor(R.color.digital_date));
 
@@ -195,11 +197,18 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             highestTemperaturePaint = createTextPaint(mInteractiveHourDigitsColor);
             lowestTemperaturePaint = createTextPaint(resources.getColor(R.color.digital_date));
 
-            weatherBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_clear);
-
             calendar = Calendar.getInstance();
             date = new Date();
             initFormats();
+
+            mGoogleApiClient =
+                    new GoogleApiClient.Builder(SunshineWatchFaceService.this)
+                            .addApi(Wearable.API)
+                            .addConnectionCallbacks(this)
+                            .addOnConnectionFailedListener(this)
+                            .build();
+            mGoogleApiClient.connect();
+
         }
 
         @Override
@@ -305,9 +314,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             canvas.drawText(hourString, hourPosition, yPosition, hourPaint);
             x = hourPosition + hourPaint.measureText(hourString);
 
-            // In ambient and mute modes, always draw the first colon. Otherwise, draw the
-            // first colon for the first half of each second.
-            if (isInAmbientMode() || mute || shouldDrawColons) {
+            if (isInAmbientMode() || shouldDrawColons) {
                 canvas.drawText(COLON_STRING, x, yPosition, colonPaint);
             }
             x += colonWidth;
@@ -320,29 +327,26 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             canvas.drawText(dateText, dateXPosition, yPosition, datePaint);
 
             if (getPeekCardPosition().isEmpty()) {
-
-                String formattedHighestTemperature = String.format(getResources().getString(R.string.format_temperature), highestTemperature);
-                String formattedLowestTemperature = String.format(getResources().getString(R.string.format_temperature), lowestTemperature);
-
-                float temperaturesWidth = highestTemperaturePaint.measureText(formattedHighestTemperature.concat(formattedLowestTemperature));
+                float temperaturesWidth = highestTemperaturePaint.measureText(highestTemperature.concat(lowestTemperature));
                 float xPosition = 0.0f;
 
                 if (weatherBitmap != null && !isInAmbientMode()) {
                     xPosition = (bounds.width() - (temperaturesWidth + weatherBitmap.getWidth())) / 2;
+                    yPosition += top_margin_image;
                     canvas.drawBitmap(weatherBitmap, xPosition, yPosition, weatherPaint);
                     xPosition += weatherBitmap.getWidth();
-                    yPosition = yPosition + (weatherBitmap.getHeight() - mLineHeight);
+                    yPosition = yPosition + ((weatherBitmap.getHeight() + top_margin_image) / 2);
                 } else {
                     xPosition = (bounds.width() - temperaturesWidth) / 2;
                     yPosition += mLineHeight;
                 }
 
-                canvas.drawText(formattedHighestTemperature, xPosition, yPosition,
+                canvas.drawText(highestTemperature, xPosition, yPosition,
                         highestTemperaturePaint);
 
                 xPosition +=
-                        highestTemperaturePaint.measureText(formattedHighestTemperature);
-                canvas.drawText(formattedLowestTemperature, xPosition, yPosition,
+                        highestTemperaturePaint.measureText(highestTemperature);
+                canvas.drawText(lowestTemperature, xPosition, yPosition,
                         lowestTemperaturePaint);
             }
 
@@ -352,17 +356,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         public void onVisibilityChanged(boolean visible) {
             super.onVisibilityChanged(visible);
             if (visible) {
-                mGoogleApiClient.connect();
                 registerReceiver();
                 calendar.setTimeZone(TimeZone.getDefault());
                 initFormats();
             } else {
                 unregisterReceiver();
-
-                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
-                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
-                    mGoogleApiClient.disconnect();
-                }
             }
 
             updateTimer();
@@ -404,6 +402,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onDataChanged(DataEventBuffer dataEvents) {
+            Log.d(TAG, "New Data received");
             for (DataEvent event : dataEvents) {
                 if (event.getType() != DataEvent.TYPE_CHANGED) {
                     continue;
@@ -433,7 +432,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                         public void run() {
                             updateData(latestHighestTemperature, latestLowestTemperature, iconAsset);
                         }
-                    });
+                    }).start();
                 }
 
             }
@@ -446,24 +445,24 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             highestTemperature = latestHighestTemperature;
             lowestTemperature = latestLowestTemperature;
             setInteractiveBackgroundColor(R.color.interactive_background_color);
-            setInteractiveHourDigitsColor(R.color.white);
-            setInteractiveMinuteDigitsColor(R.color.white);
-            postInvalidate();
+            invalidate();
+            updateTimer();
         }
 
         @Override
         public void onConnected(@Nullable Bundle bundle) {
+            Log.d(TAG, "Connected to Synchronized API");
             Wearable.DataApi.addListener(mGoogleApiClient, this);
         }
 
         @Override
         public void onConnectionSuspended(int i) {
-
+            Log.d(TAG, "Connection to Synchronized API has been suspended");
         }
 
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+            Log.d(TAG, "Connection to Synchronized API has failed");
         }
 
         private Paint createTextPaint(int defaultInteractiveColor) {
@@ -511,16 +510,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         private void setInteractiveBackgroundColor(int color) {
             mInteractiveBackgroundColor = color;
             updatePaintIfInteractive(backgroundPaint, color);
-        }
-
-        private void setInteractiveHourDigitsColor(int color) {
-            mInteractiveHourDigitsColor = color;
-            updatePaintIfInteractive(hourPaint, color);
-        }
-
-        private void setInteractiveMinuteDigitsColor(int color) {
-            mInteractiveMinuteDigitsColor = color;
-            updatePaintIfInteractive(minutePaint, color);
         }
 
         private void updatePaintIfInteractive(Paint paint, int interactiveColor) {
