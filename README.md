@@ -4,6 +4,9 @@ Wearable-watch-face
 Clone repository from [Advanced Android Sample App](https://github.com/udacity/Advanced_Android_Development). 
 This is the Wearable watch face implementation for the Sunshine Android Wear Application.
 
+![Moto 360](/images/moto360.jpg)
+![ASUS ZenWatch](/images/asus.jpg)
+
 The Application synchronizes weather information from OpenWeatherMap on Android Phones and Tablets. Used in the Udacity Advanced Android course.
 
 Pre-requisites
